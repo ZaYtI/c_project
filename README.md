@@ -50,3 +50,26 @@
 7. **Compatibilité et Portabilité :**
    - L'application doit être portable sur différents systèmes Unix/Linux.
    - Le code doit être compatible avec les bibliothèques standard POSIX pour les threads (pthread) et la mémoire partagée.
+
+## Résumé du diagramme de gantt:
+
+| Tâches                          | Durée (semaines) | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 |
+|---------------------------------|------------------|----|----|----|----|----|----|----|----|
+| **Analyse des Exigences**       | 1                | ●  |    |    |    |    |    |    |    |
+| Identification des exigences     | 0.5              | ●  |    |    |    |    |    |    |    |
+| Définir l'architecture           | 0.5              | ●  |    |    |    |    |    |    |    |
+| **Conception**                  | 2                |    | ●  | ●  |    |    |    |    |    |
+| Concevoir l'architecture serveur  | 1                |    | ●  |    |    |    |    |    |    |
+| Définir les structures de données | 1                |    | ●  | ●  |    |    |    |    |    |
+| **Implémentation**              | 3                |    |    | ●  | ●  | ●  |    |    |    |
+| Configurer l'environnement       | 0.5              |    |    | ●  |    |    |    |    |    |
+| Implémenter le serveur           | 1.5              |    |    | ●  | ●  |    |    |    |    |
+| Implémenter la mémoire partagée   | 1                |    |    |    | ●  |    |    |    |    |
+| Développer l'application client   | 1                |    |    |    | ●  | ●  |    |    |    |
+| **Tests et Débogage**           | 1.5              |    |    |    |    | ●  |    |    |    |
+| Tester avec plusieurs clients     | 1                |    |    |    |    | ●  |    |    |    |
+| Déboguer et résoudre les problèmes| 0.5              |    |    |    |    | ●  |    |    |    |
+| **Documentation et Présentation**| 1                |    |    |    |    |    | ●  |    |    |
+| Documenter le code et le projet   | 0.5              |    |    |    |    |    | ●  |    |    |
+| Préparer la présentation         | 0.5              |    |    |    |    |    |    | ●  |    |
+| **Total**                        | 8 semaines       | ●  | ●  | ●  | ●  | ●  | ●  | ●  | ●  |
