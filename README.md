@@ -4,7 +4,7 @@
 
 1. **Connexion Client-Serveur :**
    - Le serveur doit être capable de gérer plusieurs connexions simultanées de clients.
-   - Chaque client doit pouvoir se connecter à une salle de chat centralisée via une adresse IP et un port spécifiés.
+   - Chaque client doit pouvoir se connecter à la salle de chat
 
 2. **Gestion des Messages :**
    - Les utilisateurs doivent pouvoir envoyer des messages texte à tous les autres utilisateurs connectés à la salle de chat.
@@ -29,7 +29,7 @@
    - Chaque connexion client doit être gérée dans un thread distinct.
 
 2. **Synchronisation des Accès à la Mémoire Partagée :**
-   - L'accès à la mémoire partagée (où sont stockés les messages) doit être correctement synchronisé à l’aide de mutex pour éviter les conditions de course (race conditions).
+   - L'accès à la mémoire partagée (où sont stockés les messages) doit être correctement synchronisé à l’aide de mutex pour éviter les conditions de course.
    - Aucun blocage ne doit se produire lors de l'accès concurrent à la mémoire partagée par plusieurs threads.
 
 3. **Performance et Scalabilité :**
