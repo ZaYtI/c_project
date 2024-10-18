@@ -2,32 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Initialisation de WinSock
-#ifdef _WIN32
-// WINDOWS
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
 // GNU \ LINUX
 #include <netinet/in.h>
 #include <sys/socket.h>
-#endif
 
 #define LISTENING_PORT 8081
 #define PENDING_QUEUE_MAXLENGTH 1
 
 int main(void)
 {
-#ifdef _WIN32
-    WSADATA wsa;
-
-    if (WSASTARTUP(MAKEWORD(2, 2)), &wsa != 0)
-    {
-        fprintf(stderr, "(SERVEUR) Echec  d'initialisation  de WinSock\n");
-        exit(1);
-    }
-#endif
-
     // Création du socket
     int socketFD = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -69,10 +52,5 @@ int main(void)
     {
         fprintf(stderr, "(SERVEUR) Echec  d'etablissement de la connexion\n");
     }
-
-#ifdef _WIN32
-    WSACleanup()
-#else
-#endif
-        return 0;
+    return 0;
 }
