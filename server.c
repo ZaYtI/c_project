@@ -24,7 +24,6 @@ typedef struct
     char username[32];
 } message_t;
 
-// Liste des messages
 message_t message_history[MESSAGE_HISTORY_LIMIT];
 int message_count = 0;
 
@@ -40,7 +39,7 @@ typedef struct
 client_info *client_array[CLIENT_LIMIT];
 
 pthread_mutex_t client_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex pour la liste des messages
+pthread_mutex_t message_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Afficher le prompt
 void display_prompt()
@@ -139,7 +138,6 @@ void add_message_to_history(const char *content, const char *username)
     }
     else
     {
-        // Déplacer les messages pour faire de la place (FIFO)
         for (int i = 1; i < MESSAGE_HISTORY_LIMIT; i++)
         {
             message_history[i - 1] = message_history[i];
@@ -173,7 +171,6 @@ void *client_handler(void *arg)
     active_clients++;
     client_info *client = (client_info *)arg;
 
-    // Nom d'utilisateur
     if (recv(client->socket_fd, user, 32, 0) <= 0 || strlen(user) < 2 || strlen(user) >= 32 - 1)
     {
         printf("Nom d'utilisateur invalide.\n");
@@ -186,7 +183,6 @@ void *client_handler(void *arg)
         printf("%s", buffer);
         broadcast_message(buffer, client->id);
 
-        // Envoyer l'historique des messages au nouveau client
         send_message_history(client->socket_fd);
     }
 
@@ -235,12 +231,10 @@ void *client_handler(void *arg)
     return NULL;
 }
 
-// Méthode main
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        printf("Utilisation : %s <port>\n", argv[0]);
+    if (argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -253,13 +247,18 @@ int main(int argc, char **argv)
     pthread_t thread_id;
 
     listening_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (listening_socket < 0) {
+        perror("ERREUR : Échec de la création de la socket");
+        return EXIT_FAILURE;
+    }
+
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(address);
     server_addr.sin_port = htons(port_num);
 
     signal(SIGPIPE, SIG_IGN);
 
-    if (setsockopt(listening_socket, SOL_SOCKET, (SO_REUSEPORT | SO_REUSEADDR), (char *)&option, sizeof(option)) < 0)
+    if (setsockopt(listening_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) < 0)
     {
         perror("ERREUR : Échec de la configuration des options de socket");
         return EXIT_FAILURE;
@@ -283,6 +282,11 @@ int main(int argc, char **argv)
     {
         socklen_t addr_len = sizeof(client_addr);
         client_socket = accept(listening_socket, (struct sockaddr *)&client_addr, &addr_len);
+
+        if (client_socket < 0) {
+            perror("ERREUR : Échec de l'acceptation de la connexion");
+            continue;
+        }
 
         if ((active_clients + 1) == CLIENT_LIMIT)
         {
