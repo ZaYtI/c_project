@@ -159,7 +159,7 @@ void *handle_client(void *arg)
                 send_message(buff_out, cli->uid);
 
                 str_trim_lf(buff_out, strlen(buff_out));
-                printf("%s -> %s\n", buff_out, cli->name);
+                printf("%s\n", buff_out);
             }
         }
         else if (receive == 0 || strcmp(buff_out, "exit") == 0)

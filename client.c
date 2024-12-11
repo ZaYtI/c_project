@@ -8,18 +8,18 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <time.h>
 
 #define LENGTH 2048
 #define PORT 1023
 
-// Global variables
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char name[32];
 
 void str_overwrite_stdout()
 {
-    printf("%s", "> ");
+    printf("%s", "Vous> ");
     fflush(stdout);
 }
 
@@ -27,7 +27,7 @@ void str_trim_lf(char *arr, int length)
 {
     int i;
     for (i = 0; i < length; i++)
-    { // trim \n
+    {
         if (arr[i] == '\n')
         {
             arr[i] = '\0';
@@ -39,6 +39,18 @@ void str_trim_lf(char *arr, int length)
 void catch_ctrl_c_and_exit(int sig)
 {
     flag = 1;
+}
+
+char *get_current_time(char *buffer)
+{
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(buffer, 80, "%H:%M", timeinfo);
+    return buffer;
 }
 
 void send_msg_handler()
@@ -71,21 +83,22 @@ void send_msg_handler()
 void recv_msg_handler()
 {
     char message[LENGTH] = {};
+    char time_buffer[80];
     while (1)
     {
         int receive = recv(sockfd, message, LENGTH, 0);
         if (receive > 0)
         {
-            printf("%s", message);
+            printf("\033[2K\r");
+
+            get_current_time(time_buffer);
+
+            printf("[%s] %s", time_buffer, message);
             str_overwrite_stdout();
         }
         else if (receive == 0)
         {
             break;
-        }
-        else
-        {
-            // -1
         }
         memset(message, 0, sizeof(message));
     }
@@ -115,7 +128,6 @@ int main(int argc, char **argv)
     server_addr.sin_addr.s_addr = inet_addr(ip);
     server_addr.sin_port = PORT;
 
-    // Connect to Server
     int err = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (err == -1)
     {
@@ -123,7 +135,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // Send name
     send(sockfd, name, 32, 0);
 
     printf("=== WELCOME TO THE CHATROOM ===\n");
