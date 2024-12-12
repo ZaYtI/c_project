@@ -11,6 +11,7 @@
 #include <signal.h>
 
 #define MAX_CLIENTS 100
+#define MAX_MESSAGES 100
 #define BUFFER_SZ 2048
 #define PORT 1023
 
@@ -27,6 +28,13 @@ typedef struct
 } client_t;
 
 client_t *clients[MAX_CLIENTS];
+
+typedef struct {
+    char messages[MAX_MESSAGES][BUFFER_SZ];
+    int message_count;
+} message_history_t;
+
+message_history_t message_history;
 
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -114,8 +122,25 @@ void send_message(char *s, int uid)
             }
         }
     }
+    add_message_to_history(s);
 
     pthread_mutex_unlock(&clients_mutex);
+}
+
+pthread_mutex_t history_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void add_message_to_history(char *message) {
+    pthread_mutex_lock(&history_mutex);
+    if (message_history.message_count < MAX_MESSAGES) {
+        strncpy(message_history.messages[message_history.message_count], message, BUFFER_SZ);
+        message_history.message_count++;
+    } else {
+        for (int i = 1; i < MAX_MESSAGES; i++) {
+            strncpy(message_history.messages[i - 1], message_history.messages[i], BUFFER_SZ);
+        }
+        strncpy(message_history.messages[MAX_MESSAGES - 1], message, BUFFER_SZ);
+    }
+    pthread_mutex_unlock(&history_mutex);
 }
 
 /* Handle all communication with the client */
@@ -157,7 +182,6 @@ void *handle_client(void *arg)
             if (strlen(buff_out) > 0)
             {
                 send_message(buff_out, cli->uid);
-
                 str_trim_lf(buff_out, strlen(buff_out));
                 printf("%s\n", buff_out);
             }
