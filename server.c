@@ -103,6 +103,22 @@ void queue_remove(int uid)
     pthread_mutex_unlock(&clients_mutex);
 }
 
+pthread_mutex_t history_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void add_message_to_history(char *message) {
+    pthread_mutex_lock(&history_mutex);
+    if (message_history.message_count < MAX_MESSAGES) {
+        strncpy(message_history.messages[message_history.message_count], message, BUFFER_SZ);
+        message_history.message_count++;
+    } else {
+        for (int i = 1; i < MAX_MESSAGES; i++) {
+            strncpy(message_history.messages[i - 1], message_history.messages[i], BUFFER_SZ);
+        }
+        strncpy(message_history.messages[MAX_MESSAGES - 1], message, BUFFER_SZ);
+    }
+    pthread_mutex_unlock(&history_mutex);
+}
+
 /* Send message to all clients except sender */
 void send_message(char *s, int uid)
 {
@@ -127,20 +143,32 @@ void send_message(char *s, int uid)
     pthread_mutex_unlock(&clients_mutex);
 }
 
-pthread_mutex_t history_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-void add_message_to_history(char *message) {
+/* Send the entire message history to the client */
+void send_message_history(int sockfd) {
     pthread_mutex_lock(&history_mutex);
-    if (message_history.message_count < MAX_MESSAGES) {
-        strncpy(message_history.messages[message_history.message_count], message, BUFFER_SZ);
-        message_history.message_count++;
-    } else {
-        for (int i = 1; i < MAX_MESSAGES; i++) {
-            strncpy(message_history.messages[i - 1], message_history.messages[i], BUFFER_SZ);
+    for (int i = 0; i < message_history.message_count; i++) {
+        if (write(sockfd, message_history.messages[i], strlen(message_history.messages[i])) < 0) {
+            perror("ERROR: Unable to send message history");
+            break;
         }
-        strncpy(message_history.messages[MAX_MESSAGES - 1], message, BUFFER_SZ);
+        if (write(sockfd, "\n", 1) < 0) {
+            perror("ERROR: Unable to send newline");
+            break;
+        }
     }
     pthread_mutex_unlock(&history_mutex);
+}
+
+char *get_current_time(char *buffer)
+{
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(buffer, 80, "%H:%M", timeinfo);
+    return buffer;
 }
 
 /* Handle all communication with the client */
@@ -149,6 +177,7 @@ void *handle_client(void *arg)
     char buff_out[BUFFER_SZ];
     char name[32];
     int leave_flag = 0;
+    char time_buffer[80];
 
     cli_count++;
     client_t *cli = (client_t *)arg;
@@ -162,8 +191,8 @@ void *handle_client(void *arg)
     else
     {
         strcpy(cli->name, name);
-        sprintf(buff_out, "%s has joined\n", cli->name);
-        printf("%s", buff_out);
+        sprintf(buff_out, "[%s] %s has joined",get_current_time(time_buffer),cli->name);
+        printf("%s\n", buff_out);
         send_message(buff_out, cli->uid);
     }
 
@@ -181,15 +210,22 @@ void *handle_client(void *arg)
         {
             if (strlen(buff_out) > 0)
             {
-                send_message(buff_out, cli->uid);
                 str_trim_lf(buff_out, strlen(buff_out));
-                printf("%s\n", buff_out);
+                if (strcmp(buff_out, "/history") == 0) 
+                {
+                    send_message_history(cli->sockfd);
+                } 
+                else 
+                {
+                    send_message(buff_out, cli->uid);
+                    printf("%s\n", buff_out);
+                }
             }
         }
         else if (receive == 0 || strcmp(buff_out, "exit") == 0)
         {
-            sprintf(buff_out, "%s has left\n", cli->name);
-            printf("%s", buff_out);
+            sprintf(buff_out, "[%s] %s has left",get_current_time(time_buffer), cli->name);
+            printf("%s\n", buff_out);
             send_message(buff_out, cli->uid);
             leave_flag = 1;
         }
@@ -250,7 +286,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    printf("=== WELCOME TO THE CHATROOM ===\n");
+    printf("=== SERVEUR CHATROOM ===\n");
 
     while (1)
     {
