@@ -57,7 +57,7 @@ void send_msg_handler()
 {
     char message[LENGTH] = {};
     char buffer[LENGTH + 32] = {};
-
+    char time_buffer[80];
     while (1)
     {
         str_overwrite_stdout();
@@ -68,9 +68,13 @@ void send_msg_handler()
         {
             break;
         }
+        else if (strcmp(message, "/history") == 0)
+        {
+            send(sockfd, message, strlen(message), 0);
+        }
         else
         {
-            sprintf(buffer, "%s: %s\n", name, message);
+            sprintf(buffer, "[%s] %s: %s\n",get_current_time(time_buffer), name, message);
             send(sockfd, buffer, strlen(buffer), 0);
         }
 
@@ -83,7 +87,6 @@ void send_msg_handler()
 void recv_msg_handler()
 {
     char message[LENGTH] = {};
-    char time_buffer[80];
     while (1)
     {
         int receive = recv(sockfd, message, LENGTH, 0);
@@ -91,9 +94,7 @@ void recv_msg_handler()
         {
             printf("\033[2K\r");
 
-            get_current_time(time_buffer);
-
-            printf("[%s] %s", time_buffer, message);
+            printf("%s\n", message);
             str_overwrite_stdout();
         }
         else if (receive == 0)
@@ -138,6 +139,7 @@ int main(int argc, char **argv)
     send(sockfd, name, 32, 0);
 
     printf("=== WELCOME TO THE CHATROOM ===\n");
+    printf("-- Pour afficher l'historique des message envoyer /history --\n");
 
     pthread_t send_msg_thread;
     if (pthread_create(&send_msg_thread, NULL, (void *)send_msg_handler, NULL) != 0)
