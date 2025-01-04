@@ -18,37 +18,38 @@
 static _Atomic unsigned int cli_count = 0;
 static int uid = 10;
 
-/* Client structure */
+/* Structure représentant un client */
 typedef struct
 {
-    struct sockaddr_in address;
-    int sockfd;
-    int uid;
-    char name[32];
+    struct sockaddr_in address; // Adresse du client
+    int sockfd;                 // Descripteur de socket du client
+    int uid;                    // Identifiant unique du client
+    char name[32];              // Nom du client
 } client_t;
 
 client_t *clients[MAX_CLIENTS];
 
 typedef struct {
-    char messages[MAX_MESSAGES][BUFFER_SZ];
-    int message_count;
+    char messages[MAX_MESSAGES][BUFFER_SZ]; // Historique des messages
+    int message_count;                     // Nombre de messages dans l'historique
 } message_history_t;
 
 message_history_t message_history;
 
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/* Fonction permettant d'afficher le prompt ">" */
 void str_overwrite_stdout()
 {
     printf("\r%s", "> ");
     fflush(stdout);
 }
 
+/* Fonction pour supprimer le caractère de fin de ligne d'une chaîne */
 void str_trim_lf(char *arr, int length)
 {
-    int i;
-    for (i = 0; i < length; i++)
-    { // trim \n
+    for (int i = 0; i < length; i++)
+    {
         if (arr[i] == '\n')
         {
             arr[i] = '\0';
@@ -57,6 +58,7 @@ void str_trim_lf(char *arr, int length)
     }
 }
 
+/* Fonction pour afficher l'adresse IP d'un client */
 void print_client_addr(struct sockaddr_in addr)
 {
     printf("%d.%d.%d.%d",
@@ -66,11 +68,10 @@ void print_client_addr(struct sockaddr_in addr)
            (addr.sin_addr.s_addr & 0xff000000) >> 24);
 }
 
-/* Add clients to queue */
+/* Ajout d'un client à la liste des clients */
 void queue_add(client_t *cl)
 {
     pthread_mutex_lock(&clients_mutex);
-
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         if (!clients[i])
@@ -79,32 +80,27 @@ void queue_add(client_t *cl)
             break;
         }
     }
-
     pthread_mutex_unlock(&clients_mutex);
 }
 
-/* Remove clients to queue */
+/* Suppression d'un client de la liste des clients */
 void queue_remove(int uid)
 {
     pthread_mutex_lock(&clients_mutex);
-
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
-        if (clients[i])
+        if (clients[i] && clients[i]->uid == uid)
         {
-            if (clients[i]->uid == uid)
-            {
-                clients[i] = NULL;
-                break;
-            }
+            clients[i] = NULL;
+            break;
         }
     }
-
     pthread_mutex_unlock(&clients_mutex);
 }
 
 pthread_mutex_t history_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/* Ajout d'un message à l'historique des messages */
 void add_message_to_history(char *message) {
     pthread_mutex_lock(&history_mutex);
     if (message_history.message_count < MAX_MESSAGES) {
@@ -119,31 +115,26 @@ void add_message_to_history(char *message) {
     pthread_mutex_unlock(&history_mutex);
 }
 
-/* Send message to all clients except sender */
+/* Envoi d'un message à tous les clients sauf l'expéditeur */
 void send_message(char *s, int uid)
 {
     pthread_mutex_lock(&clients_mutex);
-
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
-        if (clients[i])
+        if (clients[i] && clients[i]->uid != uid)
         {
-            if (clients[i]->uid != uid)
+            if (write(clients[i]->sockfd, s, strlen(s)) < 0)
             {
-                if (write(clients[i]->sockfd, s, strlen(s)) < 0)
-                {
-                    perror("ERROR: write to descriptor failed");
-                    break;
-                }
+                perror("ERROR: write to descriptor failed");
+                break;
             }
         }
     }
     add_message_to_history(s);
-
     pthread_mutex_unlock(&clients_mutex);
 }
 
-/* Send the entire message history to the client */
+/* Envoi de l'historique des messages au client */
 void send_message_history(int sockfd) {
     pthread_mutex_lock(&history_mutex);
     for (int i = 0; i < message_history.message_count; i++) {
@@ -159,19 +150,18 @@ void send_message_history(int sockfd) {
     pthread_mutex_unlock(&history_mutex);
 }
 
+/* Récupération de l'heure actuelle */
 char *get_current_time(char *buffer)
 {
     time_t rawtime;
     struct tm *timeinfo;
-
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-
     strftime(buffer, 80, "%H:%M", timeinfo);
     return buffer;
 }
 
-/* Handle all communication with the client */
+/* Gestion de la communication avec un client */
 void *handle_client(void *arg)
 {
     char buff_out[BUFFER_SZ];
@@ -182,7 +172,6 @@ void *handle_client(void *arg)
     cli_count++;
     client_t *cli = (client_t *)arg;
 
-    // Name
     if (recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
     {
         printf("Didn't enter the name.\n");
@@ -191,60 +180,32 @@ void *handle_client(void *arg)
     else
     {
         strcpy(cli->name, name);
-        sprintf(buff_out, "[%s] %s has joined",get_current_time(time_buffer),cli->name);
+        sprintf(buff_out, "[%s] %s has joined", get_current_time(time_buffer), cli->name);
         printf("%s\n", buff_out);
         send_message(buff_out, cli->uid);
     }
 
-    bzero(buff_out, BUFFER_SZ);
-
-    while (1)
+    while (!leave_flag)
     {
-        if (leave_flag)
-        {
-            break;
-        }
-
         int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
-        if (receive > 0)
+        if (receive > 0 && strlen(buff_out) > 0)
         {
-            if (strlen(buff_out) > 0)
-            {
-                str_trim_lf(buff_out, strlen(buff_out));
-                if (strcmp(buff_out, "/history") == 0) 
-                {
-                    send_message_history(cli->sockfd);
-                } 
-                else 
-                {
-                    send_message(buff_out, cli->uid);
-                    printf("%s\n", buff_out);
-                }
+            str_trim_lf(buff_out, strlen(buff_out));
+            if (strcmp(buff_out, "/history") == 0) 
+                send_message_history(cli->sockfd);
+            else {
+                send_message(buff_out, cli->uid);
+                printf("%s\n", buff_out);
             }
-        }
-        else if (receive == 0 || strcmp(buff_out, "exit") == 0)
-        {
-            sprintf(buff_out, "[%s] %s has left",get_current_time(time_buffer), cli->name);
-            printf("%s\n", buff_out);
-            send_message(buff_out, cli->uid);
-            leave_flag = 1;
-        }
-        else
-        {
-            printf("ERROR: -1\n");
-            leave_flag = 1;
-        }
-
+        } else leave_flag = 1;
         bzero(buff_out, BUFFER_SZ);
     }
 
-    /* Delete client from queue and yield thread */
     close(cli->sockfd);
     queue_remove(cli->uid);
     free(cli);
     cli_count--;
     pthread_detach(pthread_self());
-
     return NULL;
 }
 
@@ -263,8 +224,6 @@ int main(int argc, char **argv)
     serv_addr.sin_addr.s_addr = inet_addr(ip);
     serv_addr.sin_port = PORT;
 
-    /* Ignore pipe signals */
-    signal(SIGPIPE, SIG_IGN);
 
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (char *)&option, sizeof(option)) < 0)
     {
