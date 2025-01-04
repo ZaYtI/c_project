@@ -1,4 +1,93 @@
-## Identification des éxigences fonctionnelles et éxigences non fonctionnelles
+# 1-Manuel de lancement de l'application
+
+1. **Compiler les fichiers Client-Serveur :**
+   Compiler les différent composant de l'application grace a notre Makefile
+   ```bash
+      $ cd <project-name>
+      $ make
+   ```
+
+2. **Lancement du serveur :**
+   Afin de lancer le serveur nous allons utiliser le fichier compiler précédement grace au MakeFile
+   ```bash
+      $ ./server
+   ```
+   
+   Une fois lancer votre terminal devrait afficher le message suivant
+   ```
+      $ ./server 
+      === SERVEUR CHATROOM ===
+   ```
+   Ce qui indique que votre serveur est bien lancer par défaut celui ci est lancer sur le port **1023**
+
+3. **Lancement du client :**
+   Tout comme pour le serveur nous allons utiliser le fichier compiler grace au MakeFile
+
+   ```bash
+      $ ./client
+   ```
+
+   Une fois le client vous devrez entrer votre nom une fois votre nom valider vous serez dans la chatroom ce qui s'affichera comme ci dessous
+   ```bash
+      $ ./client 
+      Please enter your name: Antonin 
+      === WELCOME TO THE CHATROOM ===
+      -- Pour afficher l'historique des message envoyer /history --
+      Vous> <votre-premier-message>
+   ```
+
+   Chacun des clients et par défaut attacher au port server 1023 vous pouvez quand vous le souhaitez créer un nouveau client qui sera directement intégrer a votre serveur sans avoir besoins de préciser un port
+
+
+4. **Afficahge de l'historique des messages:**
+   Un problème que nous avons identifier pendant le développement est qu'une personne qui rejoins:e chatroom ne peux pas accéder directement a l'historique des messages nous avons mis en place une commande **/history** qui va permettre a un nouvelle utilisateur d'afficher la liste des messages
+
+   **Message du premier client :**
+   ```bash
+      $ ./client 
+      Please enter your name: Antonin 
+      === WELCOME TO THE CHATROOM ===
+      -- Pour afficher l'historique des message envoyer /history --
+      Vous> Salut je suis Antonin 
+      Vous> Il y a quelqu'un 
+      Vous> Je vais tester l'historique 
+      [10:43] test has joined
+      Vous> 
+   ```
+   On peut voir ci dessus **[10:43] test has joined** a chaque fois qu'un nouveau client son nom s'affiche pour préciser qui a rejoint
+
+   **Message du deuxième client :**
+   ```bash
+      $ ./client 
+      Please enter your name: test
+      === WELCOME TO THE CHATROOM ===
+      -- Pour afficher l'historique des message envoyer /history --
+      Vous> 
+   ```
+
+   Comme tout a l'heure au lancement du premier client on peut voir que le client test n'a aucun des message d'afficher nous allons donc comme préciser ci dessus utiliser /history
+
+   **Affichage de l'historique**
+   ```bash
+      ./client 
+      Please enter your name: test
+      === WELCOME TO THE CHATROOM ===
+      -- Pour afficher l'historique des message envoyer /history --
+      Vous> 
+      Vous> /history 
+      [10:39] Antonin has joined
+
+      [10:42] Antonin: Salut je suis Antonin
+      [10:42] Antonin: Il y a quelqu'un
+      [10:42] Antonin: Je vais tester l'historique
+      [10:43] test has joined
+      [10:47] test: 
+      Vous> 
+   ```
+
+   Cet commande nous affiche alors l'historique des messages
+
+# 2-Identification des éxigences fonctionnelles et éxigences non fonctionnelles
 
 ### Exigences Fonctionnelles
 
